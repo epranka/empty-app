@@ -59,6 +59,7 @@
 })();
 
 const DEFAULT_HTML_STRING = `
+
 <link href="https://fonts.googleapis.com/css2?family=Roboto&amp;display=swap" rel="stylesheet">
 <style>
     body {
@@ -148,10 +149,10 @@ const DEFAULT_HTML_STRING = `
 
     <p>
         Stay tuned:
-        <a href="" class="highlight"><img id="twitter-icon" src="/twitter.png"> epranka</a>
-        <a href="" class="highlight">github</a>
-        <a href="" class="highlight">linkedin</a>
-        <a href="" class="highlight">dev.to</a>
+        <a href="https://twitter.com/epranka" class="highlight"><img id="twitter-icon" src="/twitter.png"> epranka</a>
+        <a href="https://github.com/epranka/empty-app" class="highlight">github</a>
+        <a href="https://linkedin.com/in/epranka" class="highlight">linkedin</a>
+        <a href="https://dev.to/epranka" class="highlight">dev.to</a>
     </p>
 </div>
 `;
