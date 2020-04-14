@@ -4,13 +4,15 @@
 
     class EmptyApp {
         constructor() {
+            this.listen = false;
             this.reset = this.reset.bind(this);
             this.clear = this.clear.bind(this);
 
             this.localStorage = window.localStorage;
             this.loadExisting();
+            this.listen = true;
             this.observer = new MutationObserver(this.handleChanges.bind(this));
-            this.observer.observe(document, {
+            this.observer.observe(document.body, {
                 subtree: true,
                 attributes: true,
                 childList: true,
@@ -18,9 +20,15 @@
         }
 
         handleChanges() {
+            if (!this.listen) {
+                return;
+            }
             const $body = document.body;
             const bodyHtmlString = $body.innerHTML;
             this.localStorage.setItem(STORAGE_KEY, bodyHtmlString);
+            this.listen = false;
+            this.runScripts();
+            this.listen = true;
         }
 
         loadExisting() {
@@ -46,6 +54,56 @@
         clear() {
             this.localStorage.setItem(STORAGE_KEY, "");
             this.loadExisting();
+        }
+
+        runScripts() {
+            function nodeName(elem, name) {
+                return (
+                    elem.nodeName &&
+                    elem.nodeName.toUpperCase() === name.toUpperCase()
+                );
+            }
+
+            function evalScript(elem) {
+                var data =
+                        elem.text || elem.textContent || elem.innerHTML || "",
+                    head =
+                        document.getElementsByTagName("head")[0] ||
+                        document.documentElement,
+                    script = document.createElement("script");
+
+                script.type = "text/javascript";
+                try {
+                    script.appendChild(document.createTextNode(data));
+                } catch (e) {
+                    script.text = data;
+                }
+
+                head.insertBefore(script, head.firstChild);
+                head.removeChild(script);
+            }
+
+            var scripts = [],
+                script,
+                children_nodes = document.body.childNodes,
+                child,
+                i;
+
+            for (i = 0; children_nodes[i]; i++) {
+                child = children_nodes[i];
+                if (
+                    nodeName(child, "script") &&
+                    (!child.type ||
+                        child.type.toLowerCase() === "text/javascript")
+                ) {
+                    scripts.push(child);
+                }
+            }
+
+            for (i = 0; scripts[i]; i++) {
+                script = scripts[i];
+                evalScript(scripts[i]);
+            }
         }
     }
 
