@@ -32,7 +32,7 @@ When you change the DOM, everything in the `<body />` tag will be kept on page r
 Have ideas on how to improve it? New features? Feel free to share it on the [GitHub Issues](https://github.com/epranka/empty-app/issues).
 
 <p align="center">
-  <img alt="empty app" src="" />
+  <img alt="empty app" src="https://emptyapp.now.sh/social.png" />
 </p>
 
 <h3>Simple instructions</h3>
