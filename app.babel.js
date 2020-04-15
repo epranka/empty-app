@@ -1,34 +1,33 @@
 (() => {
     MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
     const STORAGE_KEY = "_empty_app_body_html";
+    const STORAGE_KEY_AUTOSAVE = "_empty_app_autosave";
 
     class EmptyApp {
         constructor() {
-            this.listen = false;
             this.reset = this.reset.bind(this);
             this.clear = this.clear.bind(this);
+            this.save = this.save.bind(this);
+            this.autosave = this.autosave.bind(this);
+            this.detectChanges = this.detectChanges.bind(this);
 
             this.localStorage = window.localStorage;
+            this.enabledAutosave = this.loadAutosaveSettings();
             this.loadExisting();
-            this.listen = true;
-            this.observer = new MutationObserver(this.handleChanges.bind(this));
-            this.observer.observe(document.body, {
-                subtree: true,
-                attributes: true,
-                childList: true,
-            });
+            this.detectChanges();
         }
 
-        handleChanges() {
-            if (!this.listen) {
-                return;
+        detectChanges() {
+            requestAnimationFrame(this.detectChanges);
+            if (this.enabledAutosave) {
+                this.saveChanges();
             }
+        }
+
+        saveChanges() {
             const $body = document.body;
             const bodyHtmlString = $body.innerHTML;
             this.localStorage.setItem(STORAGE_KEY, bodyHtmlString);
-            this.listen = false;
-            this.runScripts();
-            this.listen = true;
         }
 
         loadExisting() {
@@ -36,6 +35,7 @@
             const $body = document.body;
             if (typeof bodyHtmlString === "string") {
                 $body.innerHTML = bodyHtmlString;
+                this.runScripts();
             } else {
                 this.loadDefault();
             }
@@ -46,8 +46,15 @@
             $body.innerHTML = DEFAULT_HTML_STRING;
         }
 
+        loadAutosaveSettings() {
+            let autosave = this.localStorage.getItem(STORAGE_KEY_AUTOSAVE);
+            if (!autosave) return true; // by default autosave is enabled
+            return JSON.parse(autosave);
+        }
+
         reset() {
             this.localStorage.removeItem(STORAGE_KEY);
+            this.localStorage.removeItem(STORAGE_KEY_AUTOSAVE);
             this.loadExisting();
         }
 
@@ -56,7 +63,19 @@
             this.loadExisting();
         }
 
-        runScripts() {
+        autosave(enabled) {
+            this.enabledAutosave = enabled;
+            this.localStorage.setItem(
+                STORAGE_KEY_AUTOSAVE,
+                JSON.stringify(enabled)
+            );
+        }
+
+        save() {
+            this.saveChanges();
+        }
+
+        async runScripts() {
             function nodeName(elem, name) {
                 return (
                     elem.nodeName &&
@@ -65,22 +84,30 @@
             }
 
             function evalScript(elem) {
-                var data =
-                        elem.text || elem.textContent || elem.innerHTML || "",
-                    head =
-                        document.getElementsByTagName("head")[0] ||
-                        document.documentElement,
-                    script = document.createElement("script");
+                return new Promise((resolve) => {
+                    var data =
+                            elem.text ||
+                            elem.textContent ||
+                            elem.innerHTML ||
+                            "",
+                        head =
+                            document.getElementsByTagName("head")[0] ||
+                            document.documentElement,
+                        script = document.createElement("script");
+                    script.type = "text/javascript";
+                    script.onload = script.onerror = resolve;
+                    if (elem.src) {
+                        script.src = elem.src;
+                    }
+                    try {
+                        script.appendChild(document.createTextNode(data));
+                    } catch (e) {
+                        script.text = data;
+                    }
 
-                script.type = "text/javascript";
-                try {
-                    script.appendChild(document.createTextNode(data));
-                } catch (e) {
-                    script.text = data;
-                }
-
-                head.insertBefore(script, head.firstChild);
-                head.removeChild(script);
+                    head.insertBefore(script, head.firstChild);
+                    head.removeChild(script);
+                });
             }
 
             var scripts = [],
@@ -102,16 +129,18 @@
 
             for (i = 0; scripts[i]; i++) {
                 script = scripts[i];
-                evalScript(scripts[i]);
+                await evalScript(scripts[i]);
             }
         }
     }
 
     window.onload = () => {
         const emptyApp = new EmptyApp();
-        window["EmptyApp"] = {
+        window["app"] = {
             clear: emptyApp.clear,
             reset: emptyApp.reset,
+            save: emptyApp.save,
+            autosave: emptyApp.autosave,
         };
     };
 })();
@@ -196,12 +225,19 @@ const DEFAULT_HTML_STRING = `
         </li>
         <li>
             To clear body tag, in Console use the following command:
-            <span class="highlight">EmptyApp.clear()</span>
+            <span class="highlight">app.clear()</span>
         </li>
         <li>
             To reset Empty App to this (default) message, use the
             following command:
-            <span class="highlight">EmptyApp.reset()</span>
+            <span class="highlight">app.reset()</span>
+        </li>
+        <li>
+            The <span class="highlight">&lt;script /&gt;</span> tags are supported, 
+            but before using it, the recommendation is to disable autosave (which is enabled by default), 
+            because of possible DOM changes by JavaScript. 
+            Disable autosave with <span class="highlight">app.autosave(false)</span>. 
+            To save changes manually: <span class="highlight">app.save()</span>
         </li>
     </ol>
 
